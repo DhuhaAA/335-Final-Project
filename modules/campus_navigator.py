@@ -189,18 +189,18 @@ def build_campus_navigator_tab(notebook):
                          highlightbackground=C["border"])
     map_frame.pack(fill="x", pady=(0, 8))
 
-    canvas = tk.Canvas(map_frame, bg=C["card"], height=180, highlightthickness=0)
+    canvas = tk.Canvas(map_frame, bg=C["card"], height=260, highlightthickness=0)
     canvas.pack(fill="x", padx=4, pady=4)
 
     # Draw campus graph visually
     NODE_POS = {
-        "Library":   (120, 80),
-        "Gym":       (280, 50),
-        "Dorms":     (120, 150),
-        "ECS":       (220, 150),
-        "Cafeteria": (380, 90),
-        "Quad":      (400, 155),
-        "Science":   (320, 155),
+        "Library":   (160, 110),
+        "Gym":       (370, 55),
+        "Dorms":     (155, 210),
+        "ECS":       (300, 210),
+        "Cafeteria": (510, 100),
+        "Quad":      (530, 210),
+        "Science":   (420, 210),
     }
 
     def draw_graph(highlight_path=None):
@@ -223,16 +223,17 @@ def build_campus_navigator_tab(notebook):
                                        width=3 if is_path else 1)
                     mx, my = (x1+x2)//2, (y1+y2)//2
                     canvas.create_text(mx, my, text=str(w),
-                                       font=("Courier New", 7), fill=C["subtext"])
+                                       font=("Courier New", 9, "bold"), fill=C["subtext"],
+                                       tags="weight")
                     drawn.add((node, nb)); drawn.add((nb, node))
 
         for node, (x, y) in NODE_POS.items():
             in_path = highlight_path and node in highlight_path
             color = C["green"] if in_path else C["accent"]
-            canvas.create_oval(x-18, y-12, x+18, y+12,
+            canvas.create_oval(x-28, y-16, x+28, y+16,
                                fill=color, outline=C["accent2"], width=2)
             canvas.create_text(x, y, text=node,
-                               font=("Courier New", 7, "bold"), fill="#FFFFFF")
+                               font=("Courier New", 8, "bold"), fill="#FFFFFF")
 
     draw_graph()
 
