@@ -232,12 +232,12 @@ class ComplexityTable(tk.Frame):
     COL_W   = [22, 12, 14, 12, 12]
 
     def __init__(self, parent, category, rows):
-        super().__init__(parent, bg=COLORS["panel"])
+        super().__init__(parent, bg=COLORS["card"])
 
         tk.Label(
             self, text=f"  {category}",
             font=("Courier New", 11, "bold"),
-            fg=COLORS["accent"], bg=COLORS["panel"], anchor="w",
+            fg=COLORS["accent"], bg=COLORS["card"], anchor="w",
         ).pack(fill="x", pady=(10, 4))
 
         tbl = tk.Frame(self, bg=COLORS["border"], bd=1, relief="solid")
@@ -256,7 +256,7 @@ class ComplexityTable(tk.Frame):
 
         # Rows
         for ridx, (algo, best, avg, worst, space, ck) in enumerate(rows):
-            row_bg = COLORS["card"] if ridx % 2 == 0 else COLORS["panel"]
+            row_bg = COLORS["card"] if ridx % 2 == 0 else "#F0F5F8"
             rf = tk.Frame(tbl, bg=row_bg)
             rf.pack(fill="x")
             for cidx, (val, w) in enumerate(zip([algo, best, avg, worst, space], self.COL_W)):
@@ -316,16 +316,16 @@ def build_algorithm_info_tab(notebook: ttk.Notebook) -> tk.Frame:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def _build_complexity_tab(nb):
-    frame = tk.Frame(nb, bg=COLORS["panel"])
+    frame = tk.Frame(nb, bg=COLORS["card"])
     nb.add(frame, text="  Big-O Complexities  ")
 
-    canvas = tk.Canvas(frame, bg=COLORS["panel"], highlightthickness=0)
+    canvas = tk.Canvas(frame, bg=COLORS["card"], highlightthickness=0)
     sb = tk.Scrollbar(frame, orient="vertical", command=canvas.yview)
     canvas.configure(yscrollcommand=sb.set)
     sb.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
 
-    inner = tk.Frame(canvas, bg=COLORS["panel"])
+    inner = tk.Frame(canvas, bg=COLORS["card"])
     cw = canvas.create_window((0, 0), window=inner, anchor="nw")
 
     canvas.bind("<Configure>", lambda e: canvas.itemconfig(cw, width=e.width))
@@ -338,19 +338,19 @@ def _build_complexity_tab(nb):
     tk.Label(inner,
              text="Time and space complexities for every algorithm in TCAA.\n"
                   "Cells are colour-coded by efficiency class.",
-             font=("Courier New", 9), fg=COLORS["subtext"], bg=COLORS["panel"],
+             font=("Courier New", 9), fg=COLORS["subtext"], bg=COLORS["card"],
              justify="left", padx=10, pady=6).pack(anchor="w", padx=10)
 
     # Legend
-    leg = tk.Frame(inner, bg=COLORS["panel"])
+    leg = tk.Frame(inner, bg=COLORS["card"])
     leg.pack(anchor="w", padx=14, pady=(0, 6))
     tk.Label(leg, text="Key: ", font=("Courier New", 8, "bold"),
-             fg=COLORS["subtext"], bg=COLORS["panel"]).pack(side="left")
+             fg=COLORS["subtext"], bg=COLORS["card"]).pack(side="left")
     for ck, desc in COLOR_LEGEND:
         tk.Label(leg, text="●", font=("Courier New", 11, "bold"),
-                 fg=COLORS[ck], bg=COLORS["panel"]).pack(side="left", padx=(6, 2))
+                 fg=COLORS[ck], bg=COLORS["card"]).pack(side="left", padx=(6, 2))
         tk.Label(leg, text=desc, font=("Courier New", 8),
-                 fg=COLORS["subtext"], bg=COLORS["panel"]).pack(side="left", padx=(0, 10))
+                 fg=COLORS["subtext"], bg=COLORS["card"]).pack(side="left", padx=(0, 10))
 
     # Tables
     for cat, rows in COMPLEXITY_DATA.items():
@@ -359,7 +359,7 @@ def _build_complexity_tab(nb):
     # Notation reference
     ref = tk.LabelFrame(inner, text="  Notation Reference  ",
                         font=("Courier New", 10, "bold"),
-                        fg=COLORS["accent"], bg=COLORS["panel"],
+                        fg=COLORS["accent"], bg=COLORS["card"],
                         bd=1, relief="solid")
     ref.pack(fill="x", padx=10, pady=(8, 6))
     for sym, meaning in [
@@ -369,17 +369,17 @@ def _build_complexity_tab(nb):
         ("E", "number of edges (paths)"),
         ("W", "max weight / available study time"),
     ]:
-        r = tk.Frame(ref, bg=COLORS["panel"])
+        r = tk.Frame(ref, bg=COLORS["card"])
         r.pack(fill="x", padx=8, pady=2)
         tk.Label(r, text=f"  {sym:<4}", font=("Courier New", 9, "bold"),
-                 fg=COLORS["accent2"], bg=COLORS["panel"], width=5, anchor="w").pack(side="left")
+                 fg=COLORS["accent2"], bg=COLORS["card"], width=5, anchor="w").pack(side="left")
         tk.Label(r, text=f"->  {meaning}", font=("Courier New", 9),
-                 fg=COLORS["text"], bg=COLORS["panel"], anchor="w").pack(side="left")
+                 fg=COLORS["text"], bg=COLORS["card"], anchor="w").pack(side="left")
 
     # Big Eight efficiency classes (from Week 2 slides)
     eight = tk.LabelFrame(inner, text="  The Big Eight Efficiency Classes  ",
                           font=("Courier New", 10, "bold"),
-                          fg=COLORS["accent"], bg=COLORS["panel"],
+                          fg=COLORS["accent"], bg=COLORS["card"],
                           bd=1, relief="solid")
     eight.pack(fill="x", padx=10, pady=(0, 6))
 
@@ -402,7 +402,7 @@ def _build_complexity_tab(nb):
                  width=w, anchor="center", padx=4, pady=3).pack(side="left")
 
     for ridx, (notation, ck, cls, example) in enumerate(big_eight):
-        row_bg = COLORS["card"] if ridx % 2 == 0 else COLORS["panel"]
+        row_bg = COLORS["card"] if ridx % 2 == 0 else "#F0F5F8"
         r8 = tk.Frame(eight, bg=row_bg)
         r8.pack(fill="x", padx=4)
         tk.Label(r8, text=notation, font=("Courier New", 9, "bold"),
@@ -415,7 +415,7 @@ def _build_complexity_tab(nb):
     # Real-world examples (from professor's slides)
     rw = tk.LabelFrame(inner, text="  Real-World Connections (from lectures)  ",
                        font=("Courier New", 10, "bold"),
-                       fg=COLORS["accent"], bg=COLORS["panel"],
+                       fg=COLORS["accent"], bg=COLORS["card"],
                        bd=1, relief="solid")
     rw.pack(fill="x", padx=10, pady=(0, 14))
 
@@ -431,7 +431,7 @@ def _build_complexity_tab(nb):
     ]
 
     for ridx, (context, algo, note) in enumerate(real_world):
-        row_bg = COLORS["card"] if ridx % 2 == 0 else COLORS["panel"]
+        row_bg = COLORS["card"] if ridx % 2 == 0 else "#F0F5F8"
         rr = tk.Frame(rw, bg=row_bg)
         rr.pack(fill="x", padx=4)
         tk.Label(rr, text=f"  {context:<24}", font=("Courier New", 8, "bold"),
