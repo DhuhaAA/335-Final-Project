@@ -1,144 +1,283 @@
+"""
+TCAA - Campus Navigator Module
+BFS · DFS · Dijkstra · Prim's MST
+"""
+
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from algorithms.graph_algorithms import bfs, dfs, dijkstra, prims_mst, CAMPUS_GRAPH
 
+C = {
+    "bg":        "#F3E3D0",
+    "panel":     "#AACDDC",
+    "card":      "#FFFFFF",
+    "accent":    "#81A6C6",
+    "accent2":   "#5A86A8",
+    "green":     "#4A8C6F",
+    "red":       "#B85C5C",
+    "brown":     "#8B6F3E",
+    "text":      "#1E2D3A",
+    "subtext":   "#5A7080",
+    "border":    "#D2C4B4",
+    "header_bg": "#81A6C6",
+    "entry_bg":  "#FFFFFF",
+}
 
-def launch():
-    window = tk.Toplevel()
-    window.title("Campus Navigator")
-    window.geometry("700x600")
-    window.configure(bg="#f0f4f7")
+def _btn(parent, text, cmd, color=None):
+    return tk.Button(parent, text=text, command=cmd,
+                     font=("Courier New", 9, "bold"),
+                     fg="#FFFFFF", bg=color or C["accent"],
+                     activebackground=C["accent2"], activeforeground="#FFFFFF",
+                     relief="flat", bd=0, padx=12, pady=5, cursor="hand2")
 
-    # --- Title ---
-    title = tk.Label(window, text="Campus Navigator", font=("Arial", 18, "bold"), bg="#f0f4f7")
-    title.pack(pady=10)
 
-    # --- Input Frame ---
-    input_frame = tk.Frame(window, bg="#f0f4f7")
-    input_frame.pack(pady=10)
+def build_campus_navigator_tab(notebook):
+    tab = tk.Frame(notebook, bg=C["bg"])
+
+    # Header
+    hdr = tk.Frame(tab, bg=C["header_bg"], pady=11)
+    hdr.pack(fill="x")
+    tk.Label(hdr, text="Campus Navigator",
+             font=("Courier New", 17, "bold"), fg="#FFFFFF", bg=C["header_bg"]).pack()
+    tk.Label(hdr, text="BFS  ·  DFS  ·  Dijkstra Shortest Path  ·  Prim's MST",
+             font=("Courier New", 9), fg=C["border"], bg=C["header_bg"]).pack()
+
+    body = tk.Frame(tab, bg=C["bg"])
+    body.pack(fill="both", expand=True, padx=12, pady=10)
+
+    # ── Left panel: controls ──────────────────────────────────────────────────
+    left = tk.Frame(body, bg=C["panel"], width=260)
+    left.pack(side="left", fill="y", padx=(0, 10))
+    left.pack_propagate(False)
 
     nodes = list(CAMPUS_GRAPH.keys())
 
-    # Start Node
-    tk.Label(input_frame, text="Start Node:", bg="#f0f4f7").grid(row=0, column=0, padx=10, pady=5)
-    start_var = tk.StringVar()
-    start_dropdown = ttk.Combobox(input_frame, textvariable=start_var, values=nodes, state="readonly")
-    start_dropdown.grid(row=0, column=1, padx=10)
+    # Section header helper
+    def sec(parent, title):
+        f = tk.Frame(parent, bg=C["header_bg"])
+        f.pack(fill="x", pady=(10, 0))
+        tk.Label(f, text=f"  {title}", font=("Courier New", 10, "bold"),
+                 fg="#FFFFFF", bg=C["header_bg"], anchor="w", pady=4).pack(fill="x")
 
-    # End Node
-    tk.Label(input_frame, text="End Node:", bg="#f0f4f7").grid(row=1, column=0, padx=10, pady=5)
-    end_var = tk.StringVar()
-    end_dropdown = ttk.Combobox(input_frame, textvariable=end_var, values=nodes, state="readonly")
-    end_dropdown.grid(row=1, column=1, padx=10)
+    sec(left, "Select Nodes")
 
-    # Defaults
-    if nodes:
-        start_var.set(nodes[0])
-        end_var.set(nodes[1] if len(nodes) > 1 else nodes[0])
+    form = tk.Frame(left, bg=C["panel"])
+    form.pack(fill="x", padx=10, pady=8)
 
-    # --- Output Box ---
-    output = tk.Text(
-        window,
-        height=15,
-        width=80,
-        bg="#1e1e1e",
-        fg="#00ffcc",
-        insertbackground="white",
-        font=("Consolas", 10)
-    )
-    output.pack(pady=10)
+    start_var = tk.StringVar(value=nodes[0])
+    end_var   = tk.StringVar(value=nodes[1] if len(nodes) > 1 else nodes[0])
+
+    for label, var in [("Start Node:", start_var), ("End Node:", end_var)]:
+        row = tk.Frame(form, bg=C["panel"])
+        row.pack(fill="x", pady=3)
+        tk.Label(row, text=label, font=("Courier New", 8), fg=C["subtext"],
+                 bg=C["panel"], width=11, anchor="w").pack(side="left")
+        cb = ttk.Combobox(row, textvariable=var, values=nodes,
+                          state="readonly", width=14,
+                          font=("Courier New", 9))
+        cb.pack(side="left")
+
+    sec(left, "Run Algorithm")
+
+    btn_f = tk.Frame(left, bg=C["panel"])
+    btn_f.pack(fill="x", padx=10, pady=8)
+
+    # Buttons created after output widget (forward ref via lambda)
+    output_ref = [None]
 
     def display(text):
-        output.delete("1.0", tk.END)
-        output.insert(tk.END, text)
+        out = output_ref[0]
+        out.config(state="normal")
+        out.delete("1.0", tk.END)
+        # insert with tags
+        for line in text.split("\n"):
+            if line.startswith("==="):
+                out.insert(tk.END, line + "\n", "heading")
+            elif line.startswith("  "):
+                out.insert(tk.END, line + "\n", "indent")
+            elif "→" in line or "->" in line:
+                out.insert(tk.END, line + "\n", "path")
+            elif "❌" in line:
+                out.insert(tk.END, line + "\n", "error")
+            elif any(k in line for k in ["Distance:", "Hops:", "Total", "Connected:"]):
+                out.insert(tk.END, line + "\n", "stat")
+            else:
+                out.insert(tk.END, line + "\n")
+        out.config(state="disabled")
 
     def validate():
         if not start_var.get() or not end_var.get():
-            display("❌ Please select both start and end nodes.")
+            messagebox.showerror("Input Error", "Please select both start and end nodes.")
             return False
         return True
 
-    # --- BFS ---
     def run_bfs():
-        if not validate():
-            return
-
+        if not validate(): return
         path, hops, order = bfs(CAMPUS_GRAPH, start_var.get(), end_var.get())
-
         if not path:
-            display(
-                "=== BFS Result ===\n"
-                "❌ No path found.\n\n"
-                f"Visited:\n{', '.join(order)}"
-            )
+            display("=== BFS Result ===\n❌ No path found.\n\nVisited:\n  " + ", ".join(order))
             return
-
         display(
-            f"=== BFS Result ===\n"
-            f"Path: {' -> '.join(path)}\n"
-            f"Hops: {hops}\n\n"
-            f"Visited:\n{', '.join(order)}"
+            f"=== BFS (Fewest Hops) ===\n\n"
+            f"Path:    {' → '.join(path)}\n"
+            f"Hops:    {hops}\n\n"
+            f"Visited order:\n  {', '.join(order)}"
         )
 
-    # --- DFS ---
     def run_dfs():
-        if not validate():
-            return
-
+        if not validate(): return
         path, order, connected = dfs(CAMPUS_GRAPH, start_var.get(), end_var.get())
-
         display(
-            f"=== DFS Result ===\n"
-            f"Path: {' -> '.join(path) if path else 'None'}\n\n"
-            f"Visited:\n{', '.join(order)}\n\n"
-            f"Connected: {connected}"
+            f"=== DFS Traversal ===\n\n"
+            f"Path:      {' → '.join(path) if path else 'None'}\n"
+            f"Connected: {connected}\n\n"
+            f"Visited order:\n  {', '.join(order)}"
         )
 
-    # --- Dijkstra ---
     def run_dijkstra():
-        if not validate():
-            return
-
+        if not validate(): return
         path, dist = dijkstra(CAMPUS_GRAPH, start_var.get(), end_var.get())
-
         if dist == -1:
             display("=== Dijkstra Result ===\n❌ No path found.")
             return
-
         display(
-            f"=== Dijkstra Result ===\n"
-            f"Shortest Path: {' -> '.join(path)}\n"
+            f"=== Dijkstra Shortest Path ===\n\n"
+            f"Path:     {' → '.join(path)}\n"
             f"Distance: {dist}"
         )
 
-    # --- Prim's MST ---
     def run_prim():
         if not start_var.get():
-            display("❌ Please select a start node.")
+            messagebox.showerror("Input Error", "Please select a start node.")
             return
-
         edges, total = prims_mst(CAMPUS_GRAPH, start_var.get())
-
-        edge_text = "\n".join([f"{u} - {v} (weight {w})" for u, v, w in edges])
-
+        edge_lines = "\n".join(f"  {u}  —  {v}   (weight {w})" for u, v, w in edges)
         display(
             f"=== Prim's MST ===\n\n"
-            f"{edge_text}\n\n"
+            f"MST Edges:\n{edge_lines}\n\n"
             f"Total Weight: {total}"
         )
 
-    # --- Buttons ---
-    btn_frame = tk.Frame(window, bg="#f0f4f7")
-    btn_frame.pack(pady=15)
+    for text, cmd, color in [
+        ("▶  Run BFS",        run_bfs,      C["green"]),
+        ("▶  Run DFS",        run_dfs,      C["accent"]),
+        ("▶  Run Dijkstra",   run_dijkstra, C["brown"]),
+        ("▶  Run Prim's MST", run_prim,     C["red"]),
+    ]:
+        _btn(btn_f, text, cmd, color).pack(fill="x", pady=2)
 
-    tk.Button(btn_frame, text="Run BFS", command=run_bfs,
-              bg="#2ecc71", fg="white", width=14).grid(row=0, column=0, padx=6)
+    # Complexity reminder box
+    sec(left, "Complexities")
+    info = tk.Frame(left, bg=C["card"], bd=1, relief="solid")
+    info.pack(fill="x", padx=6, pady=(4, 12))
+    for line, fg in [
+        ("BFS / DFS   O(V + E)", C["green"]),
+        ("Dijkstra    O(E log V)", C["brown"]),
+        ("Prim's MST  O(E log V)", C["red"]),
+    ]:
+        tk.Label(info, text=f"  {line}", font=("Courier New", 8),
+                 fg=fg, bg=C["card"], anchor="w", pady=2).pack(fill="x")
 
-    tk.Button(btn_frame, text="Run DFS", command=run_dfs,
-              bg="#3498db", fg="white", width=14).grid(row=0, column=1, padx=6)
+    # ── Right panel: output ───────────────────────────────────────────────────
+    right = tk.Frame(body, bg=C["bg"])
+    right.pack(side="left", fill="both", expand=True)
 
-    tk.Button(btn_frame, text="Run Dijkstra", command=run_dijkstra,
-              bg="#9b59b6", fg="white", width=14).grid(row=0, column=2, padx=6)
+    # Campus graph map (static visual)
+    map_frame = tk.Frame(right, bg=C["card"], bd=1, relief="solid",
+                         highlightbackground=C["border"])
+    map_frame.pack(fill="x", pady=(0, 8))
 
-    tk.Button(btn_frame, text="Run Prim's MST", command=run_prim,
-              bg="#e67e22", fg="white", width=16).grid(row=0, column=3, padx=6)
+    canvas = tk.Canvas(map_frame, bg=C["card"], height=180, highlightthickness=0)
+    canvas.pack(fill="x", padx=4, pady=4)
+
+    # Draw campus graph visually
+    NODE_POS = {
+        "Library":   (120, 80),
+        "Gym":       (280, 50),
+        "Dorms":     (120, 150),
+        "ECS":       (220, 150),
+        "Cafeteria": (380, 90),
+        "Quad":      (400, 155),
+        "Science":   (320, 155),
+    }
+
+    def draw_graph(highlight_path=None):
+        canvas.delete("all")
+        hp = set()
+        if highlight_path:
+            for i in range(len(highlight_path) - 1):
+                hp.add((highlight_path[i], highlight_path[i+1]))
+                hp.add((highlight_path[i+1], highlight_path[i]))
+
+        drawn = set()
+        for node, neighbors in CAMPUS_GRAPH.items():
+            x1, y1 = NODE_POS[node]
+            for nb, w in neighbors:
+                if (node, nb) not in drawn:
+                    x2, y2 = NODE_POS[nb]
+                    is_path = (node, nb) in hp
+                    canvas.create_line(x1, y1, x2, y2,
+                                       fill=C["green"] if is_path else C["border"],
+                                       width=3 if is_path else 1)
+                    mx, my = (x1+x2)//2, (y1+y2)//2
+                    canvas.create_text(mx, my, text=str(w),
+                                       font=("Courier New", 7), fill=C["subtext"])
+                    drawn.add((node, nb)); drawn.add((nb, node))
+
+        for node, (x, y) in NODE_POS.items():
+            in_path = highlight_path and node in highlight_path
+            color = C["green"] if in_path else C["accent"]
+            canvas.create_oval(x-18, y-12, x+18, y+12,
+                               fill=color, outline=C["accent2"], width=2)
+            canvas.create_text(x, y, text=node,
+                               font=("Courier New", 7, "bold"), fill="#FFFFFF")
+
+    draw_graph()
+
+    # Output text area
+    out_frame = tk.Frame(right, bg=C["card"], bd=1, relief="solid",
+                         highlightbackground=C["border"])
+    out_frame.pack(fill="both", expand=True)
+
+    tk.Label(out_frame, text="  Output", font=("Courier New", 9, "bold"),
+             fg=C["subtext"], bg=C["panel"], anchor="w", pady=3).pack(fill="x")
+
+    out_sb = tk.Scrollbar(out_frame)
+    out_sb.pack(side="right", fill="y")
+
+    output = tk.Text(
+        out_frame,
+        font=("Courier New", 10),
+        fg=C["text"], bg=C["card"],
+        relief="flat", bd=0, padx=12, pady=8,
+        yscrollcommand=out_sb.set,
+        state="disabled", cursor="arrow", wrap="word",
+    )
+    output.pack(fill="both", expand=True)
+    out_sb.config(command=output.yview)
+    output_ref[0] = output
+
+    # Text tags
+    output.tag_configure("heading", font=("Courier New", 10, "bold"), foreground=C["accent"])
+    output.tag_configure("path",    foreground=C["green"])
+    output.tag_configure("stat",    foreground=C["brown"])
+    output.tag_configure("indent",  foreground=C["subtext"])
+    output.tag_configure("error",   foreground=C["red"])
+
+    display("Select start and end nodes, then run an algorithm.\n\nBFS  — fewest hops\nDFS  — traversal + connectivity\nDijkstra — shortest weighted path\nPrim's   — minimum spanning tree")
+
+    return tab
+
+
+# Backwards compat: old code called launch()
+def launch():
+    import tkinter as tk
+    from tkinter import ttk
+    root = tk.Toplevel()
+    nb = ttk.Notebook(root)
+    nb.pack(fill="both", expand=True)
+    tab = build_campus_navigator_tab(nb)
+    nb.add(tab, text="Campus Navigator")
+    root.mainloop()
